@@ -20,7 +20,7 @@ export const SOURCES = [
   { id: "tcai", cat: "ai", label: "TechCrunch AI", short: "TC", url: "https://techcrunch.com/category/artificial-intelligence/feed/", color: "#0a8f08", bg: "#e7f4e7", domain: "techcrunch.com" },
   { id: "nvidia", cat: "ai", label: "Nvidia", short: "NV", url: "https://blogs.nvidia.com/feed/", color: "#76b900", bg: "#eef7e6", domain: "nvidia.com" },
   // Microsoft
-  { id: "msai", cat: "microsoft", label: "Microsoft AI", short: "MS", url: "https://blogs.microsoft.com/ai/feed/", color: "#0078d4", bg: "#e5f2fc", domain: "microsoft.com" },
+  { id: "msai", cat: "microsoft", label: "Microsoft AI", short: "MS", url: "https://blogs.microsoft.com/blog/tag/ai/feed/", color: "#0078d4", bg: "#e5f2fc", domain: "microsoft.com" },
   { id: "azure", cat: "microsoft", label: "Azure", short: "AZ", url: "https://azure.microsoft.com/en-us/blog/feed/", color: "#0089d6", bg: "#e5f2fc", domain: "azure.microsoft.com" },
   { id: "github", cat: "microsoft", label: "GitHub", short: "GH", url: "https://github.blog/all.atom", color: "#24292f", bg: "#f0f0f0", domain: "github.com" },
   { id: "m365", cat: "microsoft", label: "M365 / Copilot", short: "M3", url: "https://www.microsoft.com/en-us/microsoft-365/blog/feed/", color: "#5c2d91", bg: "#f0eaf8", domain: "microsoft.com" },
@@ -35,12 +35,12 @@ export const SOURCES = [
   { id: "redhat", cat: "devops", label: "Red Hat", short: "RH", url: "https://www.redhat.com/en/rss/blog", color: "#cc0000", bg: "#fdeaea", domain: "redhat.com" },
   // Enterprise
   { id: "cisco", cat: "enterprise", label: "Cisco", short: "CS", url: "https://blogs.cisco.com/feed", color: "#049fd9", bg: "#e5f6fd", domain: "cisco.com" },
-  { id: "adobe", cat: "enterprise", label: "Adobe", short: "AD", url: "https://blog.adobe.com/en/publish/feed.xml", color: "#fa0f00", bg: "#fde8e8", domain: "adobe.com" },
-  { id: "hpe", cat: "enterprise", label: "HPE", short: "HP", url: "https://hnrss.org/newest?q=Hewlett+Packard+Enterprise", color: "#01a982", bg: "#e5f7f3", domain: "hpe.com" },
+  { id: "adobe", cat: "enterprise", label: "Adobe", short: "AD", url: "https://blog.adobe.com/en/query-index.json", format: "helix-index", color: "#fa0f00", bg: "#fde8e8", domain: "adobe.com" },
+  { id: "hpe", cat: "enterprise", label: "HPE", short: "HP", url: "https://www.hpe.com/us/en/newsroom/rss.xml", color: "#01a982", bg: "#e5f7f3", domain: "hpe.com" },
   { id: "veeam", cat: "enterprise", label: "Veeam", short: "VM", url: "https://www.veeam.com/blog/feed/", color: "#007db8", bg: "#e5f2f9", domain: "veeam.com" },
   // Security
   { id: "paloalto", cat: "security", label: "Palo Alto", short: "PA", url: "https://www.paloaltonetworks.com/blog/feed/", color: "#fa582d", bg: "#fff0eb", domain: "paloaltonetworks.com" },
-  { id: "fortinet", cat: "security", label: "Fortinet", short: "FT", url: "https://www.fortinet.com/blog/rss.xml", color: "#ee3124", bg: "#fdecea", domain: "fortinet.com" },
+  { id: "fortinet", cat: "security", label: "Fortinet", short: "FT", url: "https://feeds.fortinet.com/fortinet/blogs&x=1", color: "#ee3124", bg: "#fdecea", domain: "fortinet.com" },
   { id: "krebs", cat: "security", label: "Krebs on Security", short: "KB", url: "https://krebsonsecurity.com/feed/", color: "#333", bg: "#f0f0f0", domain: "krebsonsecurity.com" },
 ];
 
@@ -50,6 +50,8 @@ export const SOURCE_BY_ID = Object.fromEntries(SOURCES.map(s => [s.id, s]));
 // Kept here so the UI's "next update" countdown and the cron stay in sync.
 export const REFRESH_INTERVAL_MINUTES = 30;
 
-// Data older than this is surfaced to the reader as stale — it means the
-// scheduled job has missed at least two runs.
-export const STALE_AFTER_MINUTES = 90;
+// Data older than this is surfaced to the reader as stale. GitHub treats
+// scheduled workflows as best-effort and in practice runs this one every
+// 3-7 hours rather than every 30 minutes, so a tighter threshold kept the
+// warning on permanently. Eight hours means the job has genuinely stopped.
+export const STALE_AFTER_MINUTES = 480;

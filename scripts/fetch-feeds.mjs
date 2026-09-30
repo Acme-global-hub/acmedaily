@@ -188,7 +188,9 @@ function parseFeed(xml, src) {
   return rawItems
     .map(item => {
       const title = stripHtml(text(first(item, "title")));
-      const link = decodeEntities(extractLink(item));
+      // FeedBlitz/FeedBurner feeds point <link> at a tracking redirect; the
+      // real article URL is in origLink.
+      const link = decodeEntities(text(item["feedburner:origLink"]) || extractLink(item));
       const descriptionHtml = first(item, "description", "summary", "content:encoded", "content");
       const date = text(first(item, "pubDate", "published", "updated", "dc:date"));
 
@@ -220,7 +222,10 @@ function parseAnthropicHTML(html, src) {
     if (seen.has(link)) continue;
 
     const inner = match[2];
-    const titleMatch = inner.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/);
+    // Older layouts put the title in a heading; the current list layout uses
+    // a <span class="…__title">.
+    const titleMatch = inner.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/)
+      || inner.match(/<(?:span|div)[^>]*class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/(?:span|div)>/);
     const title = titleMatch ? stripHtml(titleMatch[1]) : "";
     if (!title) continue;
     seen.add(link);
@@ -240,6 +245,33 @@ function parseAnthropicHTML(html, src) {
     });
   }
   return out;
+}
+
+// Adobe's blog runs on Adobe Experience Manager (Edge Delivery) and no longer
+// publishes RSS. Its site index is a JSON sheet of every post, unsorted, with
+// dates stored as spreadsheet serial numbers (days since 1899-12-30).
+function parseHelixIndex(json, src) {
+  const origin = new URL(src.url).origin;
+  const rows = JSON.parse(json)?.data ?? [];
+  const absolute = p => (p ? new URL(p, origin).href : null);
+
+  return rows
+    .filter(r => r.title && r.path && typeof r.date === "number" && !/noindex/i.test(r.robots || ""))
+    .sort((a, b) => b.date - a.date)
+    .slice(0, ITEMS_PER_FEED)
+    .map(r => {
+      const link = absolute(r.path);
+      return {
+        id: `${link}::${src.id}`,
+        title: stripHtml(r.title),
+        desc: stripHtml(r.description || "").slice(0, 400),
+        link,
+        image: r.image && !r.image.startsWith("/default-meta-image") ? absolute(r.image) : null,
+        date: new Date(Math.round((r.date - 25569) * 86400000)).toISOString(),
+        sourceId: src.id,
+        catId: src.cat,
+      };
+    });
 }
 
 // Emit ISO strings so the browser never has to guess at a format, and so
@@ -370,7 +402,9 @@ async function main() {
     SOURCES.map(async src => {
       try {
         const body = await fetchText(src.url, { attempts: FEED_ATTEMPTS });
-        const items = src.isHtml ? parseAnthropicHTML(body, src) : parseFeed(body, src);
+        const items = src.format === "helix-index" ? parseHelixIndex(body, src)
+          : src.isHtml ? parseAnthropicHTML(body, src)
+          : parseFeed(body, src);
         if (items.length === 0) throw new Error("no items parsed");
         perSource[src.id] = items.length;
         console.log(`  ok   ${src.label.padEnd(20)} ${items.length} items`);
